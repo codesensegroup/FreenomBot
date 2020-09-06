@@ -9,13 +9,19 @@ import (
 	"github.com/codesensegroup/FreenomBot/internal/freenom"
 )
 
+// PageData is translate freenom map data
 type PageData struct {
 	Users []User
 }
+
+// User is translate freenom map data
 type User struct {
-	UserName string
-	Domains  []Domain
+	UserName   string
+	CheckTimes int
+	Domains    []Domain
 }
+
+// Domain is translate freenom map data
 type Domain struct {
 	DomainName string
 	Days       int
@@ -37,18 +43,7 @@ func makeHandler(fn func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
 }
 
 func renderTemplate(w http.ResponseWriter, tmpl string, data *freenom.Freenom) {
-	var pdata = &PageData{}
-	pdata.Users = make([]User, len(data.Users))
-	for i, user := range data.Users {
-		pdata.Users[i].UserName = user.UserName
-		pdata.Users[i].Domains = make([]Domain, len(user.Domains))
-		for ii, domain := range user.Domains {
-			pdata.Users[i].Domains[ii].DomainName = domain.DomainName
-			pdata.Users[i].Domains[ii].Days = domain.Days
-			pdata.Users[i].Domains[ii].ID = domain.ID
-			pdata.Users[i].Domains[ii].RenewState = domain.RenewState
-		}
-	}
+	var pdata = getPageData(&PageData{}, data)
 
 	t, err := template.ParseFiles("./resources/html/" + tmpl + ".html")
 	if err != nil {
@@ -59,6 +54,22 @@ func renderTemplate(w http.ResponseWriter, tmpl string, data *freenom.Freenom) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+}
+
+func getPageData(pdata *PageData, data *freenom.Freenom) *PageData {
+	pdata.Users = make([]User, len(data.Users))
+	for i, user := range data.Users {
+		pdata.Users[i].UserName = user.UserName
+		pdata.Users[i].CheckTimes = user.CheckTimes
+		pdata.Users[i].Domains = make([]Domain, len(user.Domains))
+		for ii, domain := range user.Domains {
+			pdata.Users[i].Domains[ii].DomainName = domain.DomainName
+			pdata.Users[i].Domains[ii].Days = domain.Days
+			pdata.Users[i].Domains[ii].ID = domain.ID
+			pdata.Users[i].Domains[ii].RenewState = domain.RenewState
+		}
+	}
+	return pdata
 }
 
 // Run server

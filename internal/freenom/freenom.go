@@ -1,7 +1,6 @@
 package freenom
 
 import (
-	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -45,9 +44,10 @@ type Domain struct {
 
 //User data
 type User struct {
-	UserName string
-	PassWord string
-	Domains  map[int]*Domain
+	UserName   string
+	PassWord   string
+	CheckTimes int
+	Domains    map[int]*Domain
 }
 
 // Freenom for opterate FreenomAPI
@@ -80,8 +80,9 @@ func GetInstance() *Freenom {
 // InputAccount input user data
 func (f *Freenom) InputAccount(uid int, UserName, PassWord string) *Freenom {
 	f.Users[uid] = &User{
-		UserName: UserName,
-		PassWord: PassWord,
+		UserName:   UserName,
+		PassWord:   PassWord,
+		CheckTimes: 0,
 	}
 	return f
 }
@@ -108,7 +109,7 @@ func (f *Freenom) Login(uid int) *Freenom {
 		if authKey == authcook.Name && authcook.Value == "" {
 			log.Println("AUTH error")
 		}
-		fmt.Println(authcook.Value)
+		log.Println("log: cookie_id: ", authcook.Value)
 	}
 	return f
 }
@@ -127,6 +128,9 @@ func (f *Freenom) RenewDomains(uid int) *Freenom {
 	if !loginStatusREGEX.Match(body) {
 		log.Fatal("login state error no login")
 	}
+
+	f.Users[uid].CheckTimes++
+
 	var token = getParams(tokenREGEX, string(body))[0]["token"]
 
 	domains := getParams(domainInfoREGEX, string(body))

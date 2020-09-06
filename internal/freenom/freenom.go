@@ -37,17 +37,24 @@ var (
 
 //Domain struct
 type Domain struct {
-	domainName string
-	days       int
-	id         string
-	renewState int
+	DomainName string
+	Days       int
+	ID         string
+	RenewState int
+}
+
+//User data
+type User struct {
+	UserName string
+	PassWord string
+	Domains  map[int]*Domain
 }
 
 // Freenom for opterate FreenomAPI
 type Freenom struct {
 	cookiejar *cookiejar.Jar
 	client    *http.Client
-	Domains   map[int]*Domain
+	Users     map[int]*User
 }
 
 var instance *Freenom
@@ -63,14 +70,24 @@ var (
 func GetInstance() *Freenom {
 	once.Do(func() {
 		instance = &Freenom{}
+		instance.Users = make(map[int]*User)
 		instance.cookiejar, _ = cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
 		instance.client = &http.Client{Timeout: timeout * time.Second, Jar: instance.cookiejar}
 	})
 	return instance
 }
 
+// InputAccount input user data
+func (f *Freenom) InputAccount(uid int, UserName, PassWord string) *Freenom {
+	f.Users[uid] = &User{
+		UserName: UserName,
+		PassWord: PassWord,
+	}
+	return f
+}
+
 // Login on Freenom
-func (f *Freenom) Login(username, password string) *Freenom {
+func (f *Freenom) Login(uid int) *Freenom {
 	_ = sendRequest(
 		"POST",
 		loginURL,
@@ -81,15 +98,15 @@ func (f *Freenom) Login(username, password string) *Freenom {
 			"Referer": "`+refererURL+`",
 		},}`,
 		url.Values{
-			"username": {username},
-			"password": {password},
+			"username": {f.Users[uid].UserName},
+			"password": {f.Users[uid].PassWord},
 		}.Encode(),
 	)
 
 	u, _ := url.Parse(baseURL)
 	for _, authcook := range f.cookiejar.Cookies(u) {
 		if authKey == authcook.Name && authcook.Value == "" {
-			log.Println("AUTH errot")
+			log.Println("AUTH error")
 		}
 		fmt.Println(authcook.Value)
 	}
@@ -97,7 +114,7 @@ func (f *Freenom) Login(username, password string) *Freenom {
 }
 
 //RenewDomains is renew domain name
-func (f *Freenom) RenewDomains() *Freenom {
+func (f *Freenom) RenewDomains(uid int) *Freenom {
 	body := sendRequest(
 		"GET",
 		domainStatusURL,
@@ -113,36 +130,36 @@ func (f *Freenom) RenewDomains() *Freenom {
 	var token = getParams(tokenREGEX, string(body))[0]["token"]
 
 	domains := getParams(domainInfoREGEX, string(body))
-	f.Domains = make(map[int]*Domain)
+	f.Users[uid].Domains = make(map[int]*Domain)
 	for i, d := range domains {
 		tmp, _ := d["days"]
-		f.Domains[i] = &Domain{}
-		f.Domains[i].days, _ = strconv.Atoi(tmp)
-		f.Domains[i].id, _ = d["id"]
-		f.Domains[i].domainName, _ = d["domain"]
-		if f.Domains[i].days <= 14 {
+		f.Users[uid].Domains[i] = &Domain{}
+		f.Users[uid].Domains[i].Days, _ = strconv.Atoi(tmp)
+		f.Users[uid].Domains[i].ID, _ = d["id"]
+		f.Users[uid].Domains[i].DomainName, _ = d["domain"]
+		if f.Users[uid].Domains[i].Days <= 14 {
 			body := sendRequest(
 				"POST",
 				renewDomainURL,
 				`{"headers":{
-					"Referer": "https://my.freenom.com/domains.php?a=renewdomain&domain=`+f.Domains[i].id+`",
+					"Referer": "https://my.freenom.com/domains.php?a=renewdomain&domain=`+f.Users[uid].Domains[i].ID+`",
 					"Content-Type": "application/x-www-form-urlencoded",
 				},}`,
 				url.Values{
-					"token":                                  {token},
-					"renewalid":                              {f.Domains[i].id},
-					"renewalperiod[" + f.Domains[i].id + "]": {"12M"},
-					"paymentmethod":                          {"credit"},
+					"token":     {token},
+					"renewalid": {f.Users[uid].Domains[i].ID},
+					"renewalperiod[" + f.Users[uid].Domains[i].ID + "]": {"12M"},
+					"paymentmethod": {"credit"},
 				}.Encode(),
 			)
 			if checkRenew.Match(body) {
-				f.Domains[i].renewState = renewYes
+				f.Users[uid].Domains[i].RenewState = renewYes
 			} else {
 				log.Fatalln("renew error")
-				f.Domains[i].renewState = renewErr
+				f.Users[uid].Domains[i].RenewState = renewErr
 			}
 		} else {
-			f.Domains[i].renewState = renewNo
+			f.Users[uid].Domains[i].RenewState = renewNo
 		}
 	}
 	return f

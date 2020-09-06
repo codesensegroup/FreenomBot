@@ -1,7 +1,7 @@
 package checkprofile
 
 import (
-	"fmt"
+	"log"
 	"path/filepath"
 
 	"github.com/BurntSushi/toml"
@@ -9,7 +9,7 @@ import (
 
 // Config object
 type Config struct {
-	Account *Account
+	Accounts []Account
 }
 
 // Account struct
@@ -26,11 +26,11 @@ func ReadConf(filename string) (*Config, error) {
 	)
 	filename, err = filepath.Abs(filename)
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 		return conf, err
 	}
 	if _, err = toml.DecodeFile(filename, &conf); err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	return conf, err
 }

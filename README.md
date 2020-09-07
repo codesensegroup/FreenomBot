@@ -21,7 +21,7 @@ Password = "ooo"
 ./FreenomBot
 ```
 
-# Contract
+# People
 
 Name: Teng-Wei, Hsieh
 

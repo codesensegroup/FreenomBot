@@ -1,0 +1,10 @@
+version: '3.7'
+services:
+    freenombot:
+        container_name: freenombot
+        image: frank30941/freenombot:1.0
+        restart: unless-stopped
+        volumes:
+              - "${PWD}/config.toml:/root/FreenomBot/config.toml"
+        ports:
+              - "8080:8080"

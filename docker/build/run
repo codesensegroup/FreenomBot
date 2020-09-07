@@ -1,0 +1,4 @@
+#!bin/sh
+cd ~/FreenomBot
+pwd
+./FreenomBot_amd64

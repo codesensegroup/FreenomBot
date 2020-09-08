@@ -13,9 +13,9 @@ import (
 
 var cronJobs = make(map[int]*gocron.Scheduler)
 
-func runFreenom(id int, run func(id int)) {
+func runFreenom(run func(id int), id int, timing string) {
 	cronJobs[id] = gocron.NewScheduler()
-	cronJobs[id].Every(1).Day().At("06:30").Do(run, id)
+	cronJobs[id].Every(1).Day().At(timing).Do(run, id)
 	<-cronJobs[id].Start()
 }
 
@@ -31,13 +31,13 @@ func main() {
 			log.Println("log: ", d)
 		}
 		//Use goroutine
-		go runFreenom(i, func(id int) {
+		go runFreenom(func(id int) {
 			f.Login(id).RenewDomains(id)
 			for _, d := range f.Users[id].Domains {
 				log.Println("log: ", d)
 			}
-		})
+		}, i, config.System.CronTiming)
 	}
 
-	httpservice.Run(f)
+	httpservice.Run(f, config)
 }

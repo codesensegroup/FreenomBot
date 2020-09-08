@@ -1,11 +1,15 @@
 package httpservice
 
 import (
+	"bytes"
+	"encoding/base64"
 	"log"
 	"net/http"
 	"regexp"
+	"strings"
 	"text/template"
 
+	"github.com/codesensegroup/FreenomBot/internal/checkprofile"
 	"github.com/codesensegroup/FreenomBot/internal/freenom"
 )
 
@@ -31,14 +35,28 @@ type Domain struct {
 
 var validPath = regexp.MustCompile("^/$")
 
-func makeHandler(fn func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
+func makeHandler(fn func(http.ResponseWriter, *http.Request), config *checkprofile.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		m := validPath.FindStringSubmatch(r.URL.Path)
 		if m == nil {
 			http.NotFound(w, r)
 			return
 		}
-		fn(w, r)
+		basicAuthPrefix := "Basic "
+		auth := r.Header.Get("Authorization")
+		if strings.HasPrefix(auth, basicAuthPrefix) {
+			payload, err := base64.StdEncoding.DecodeString(
+				auth[len(basicAuthPrefix):],
+			)
+			if err == nil {
+				pair := bytes.SplitN(payload, []byte(":"), 2)
+				if len(pair) == 2 && bytes.Equal(pair[0], []byte(config.System.Account)) && bytes.Equal(pair[1], []byte(config.System.Password)) {
+					fn(w, r)
+				}
+			}
+		}
+		w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
+		w.WriteHeader(http.StatusUnauthorized)
 	}
 }
 
@@ -73,9 +91,9 @@ func getPageData(pdata *PageData, data *freenom.Freenom) *PageData {
 }
 
 // Run server
-func Run(data *freenom.Freenom) {
+func Run(data *freenom.Freenom, config *checkprofile.Config) {
 	http.HandleFunc("/", makeHandler(func(w http.ResponseWriter, r *http.Request) {
 		renderTemplate(w, "status", data)
-	}))
+	}, config))
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }

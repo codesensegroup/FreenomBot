@@ -10,6 +10,14 @@ import (
 // Config object
 type Config struct {
 	Accounts []Account
+	System   System
+}
+
+// System for basic auth
+type System struct {
+	Account    string
+	Password   string
+	CronTiming string
 }
 
 // Account struct

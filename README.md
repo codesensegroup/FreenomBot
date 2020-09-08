@@ -6,6 +6,11 @@ The bot will auto-renew domain name
 ## Edit config.toml
 Please type Freenom account(s)
 ``` toml
+[System]
+Account = "admin"
+Password = "admin"
+CronTiming = "23:30"
+
 [[Accounts]]
 Username = "xxx@xxx.com"
 Password = "xxx"

@@ -17,9 +17,11 @@ Password = "ooo"
 
 ## Launch FreenomBot
 
+On linux
 ``` sh
-./FreenomBot
+./FreenomBot_amd64
 ```
+It will start http service on server, So you may check the status page of FrenomBot on http://localhost:8080
 
 # People
 

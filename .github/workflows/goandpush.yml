@@ -39,7 +39,7 @@ jobs:
     - name: Build Image
       run:
         cd docker/build/
-        docker build ./docker/build/ --file Dockerfile --tag image
+        docker build --tag image .
     - name: Push Image
       run:
         |

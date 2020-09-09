@@ -1,0 +1,8 @@
+[System]
+Account = "admin"
+Password = "admin"
+CronTiming = "23:30"
+
+[[Accounts]]
+Username = "user@example.com"
+Password = "password"

@@ -38,7 +38,7 @@ jobs:
         echo ${{ secrets.FrankCR_PAT }} | docker login $REG -u frank30941 --password-stdin
     - name: Build Image
       run:
-        cd docker/build/
+        cd docker/build/;
         docker build --tag image .
     - name: Push Image
       run:

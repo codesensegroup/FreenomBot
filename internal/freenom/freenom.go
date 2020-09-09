@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/codesensegroup/FreenomBot/internal/checkprofile"
 	"github.com/tidwall/gjson"
 	"golang.org/x/net/publicsuffix"
 )
@@ -78,11 +79,13 @@ func GetInstance() *Freenom {
 }
 
 // InputAccount input user data
-func (f *Freenom) InputAccount(uid int, UserName, PassWord string) *Freenom {
-	f.Users[uid] = &User{
-		UserName:   UserName,
-		PassWord:   PassWord,
-		CheckTimes: 0,
+func (f *Freenom) InputAccount(config *checkprofile.Config) *Freenom {
+	for i, a := range config.Accounts {
+		f.Users[i] = &User{
+			UserName:   a.Username,
+			PassWord:   a.Password,
+			CheckTimes: 0,
+		}
 	}
 	return f
 }
@@ -190,9 +193,10 @@ func getParams(regEx *regexp.Regexp, url string) (paramsMaps map[int]map[string]
 }
 
 /**
- * getRequest just all in one
+ * sendRequest just all in one
  */
 func sendRequest(method, furl, headers, datas string) []byte {
+RETRY:
 	req, err := http.NewRequest(method, furl, strings.NewReader(datas))
 	if err != nil {
 		log.Fatal("Create http request error", err)
@@ -205,8 +209,12 @@ func sendRequest(method, furl, headers, datas string) []byte {
 			return true
 		})
 	}
-	resp, _ := f.client.Do(req)
+	resp, err := f.client.Do(req)
+	if err != nil {
+		log.Println("http response error: ", err)
+		time.Sleep(3 * time.Second)
+		goto RETRY
+	}
 	body, _ := ioutil.ReadAll(resp.Body)
-	resp.Body.Close()
 	return body
 }

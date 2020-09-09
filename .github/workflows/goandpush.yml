@@ -1,5 +1,9 @@
 name: Go build and push img on GCR
 
+env:
+   DOCKER_REG: "ghcr.io/codesensegroup/freenombot"
+   REG: "ghcr.io"
+
 on:
   push:
     branches: [ master ]
@@ -29,10 +33,23 @@ jobs:
             curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
             dep ensure
         fi
-
-    - name: Build and Push
-      run: |
-            echo ${{ secrets.CR_PAT }} | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
-            docker pull ghcr.io/github/octoshift:latest
-            docker build . --tag ghcr.io/github/codesensegroup/freenombot:$GITHUB_SHA --cache-from ghcr.io/github/codesensegroup/freenombot:latest
-            docker push ghcr.io/github/codesensegroup/freenombot:$GITHUB_SHA
+    - name: Login Docker
+      run:
+        echo ${{ secrets.FrankCR_PAT }} | docker login $REG -u ${{ GITHUB_ACTOR }} --password-stdin
+    - name: Build Image
+      run:
+        cd docker/build/
+        docker build ./docker/build/Dockerfile --file Dockerfile --tag image
+    - name: Push Image
+      run:
+        |
+        # Strip git ref prefix from version
+        VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
+        # Strip "v" prefix from tag name
+        [[ "${{ github.ref }}" == "refs/tags/"* ]] && VERSION=$(echo $VERSION | sed -e 's/^v//')
+        # Use Docker `latest` tag convention
+        [ "$VERSION" == "master" ] && VERSION=latest
+        echo IMAGE_ID=$DOCKER_REG
+        echo VERSION=$VERSION
+        docker tag image $DOCKER_REG:$VERSION
+        docker push $DOCKER_REG:$VERSION

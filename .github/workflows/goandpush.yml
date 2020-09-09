@@ -35,7 +35,7 @@ jobs:
         fi
     - name: Login Docker
       run:
-        echo ${{ secrets.FrankCR_PAT }} | docker login $REG -u ${{ GITHUB_ACTOR }} --password-stdin
+        echo ${{ secrets.FrankCR_PAT }} | docker login $REG -u frank30941 --password-stdin
     - name: Build Image
       run:
         cd docker/build/

@@ -1,3 +1,8 @@
+[System]
+Account = "admin"
+Password = "admin"
+CronTiming = "23:30"
+
 [[Accounts]]
 Username = "XXX@XXX.com"
 Password = "XXXXXXX"

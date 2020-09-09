@@ -35,4 +35,4 @@ jobs:
             echo ${{ secrets.CR_PAT }} | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
             docker pull ghcr.io/github/octoshift:latest
             docker build . --tag ghcr.io/github/codesensegroup/freenombot:$GITHUB_SHA --cache-from ghcr.io/github/codesensegroup/freenombot:latest
-            docker push ghcr.io/github/octoshift:$GITHUB_SHA
+            docker push ghcr.io/github/codesensegroup/freenombot:$GITHUB_SHA

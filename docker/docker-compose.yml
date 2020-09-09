@@ -2,7 +2,7 @@ version: '3.7'
 services:
     freenombot:
         container_name: freenombot
-        image: frank30941/freenombot:1.0
+        image: ghcr.io/codesensegroup/freenombot:latest
         restart: unless-stopped
         volumes:
               - "${PWD}/config.toml:/root/FreenomBot/config.toml"

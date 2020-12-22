@@ -1,8 +1,13 @@
-FROM alpine:latest
 
-ADD config.toml      /root/FreenomBot/
-COPY resources        /root/FreenomBot/resources/
-ADD FreenomBot_amd64 /root/FreenomBot/
+FROM golang:alpine AS build-env
+ADD . /src
+RUN cd /src && go mod vender;
+RUN go build -o app
+
+FROM alpine:latest
+ADD config.toml      /root/app/
+COPY resources        /root/app/resources/
+COPY --from=build-env /src/app /root/app/
 ADD run /root/
 
 WORKDIR /root/

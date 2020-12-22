@@ -5,30 +5,30 @@
 </head>
 <body>
     <h2>Status</h2>
-    {{range $User := .Users}}
+    {{range $User := .ConfigData.Accounts}}
     <table>
         <thead>
             <tr>
-                <th colspan="4" > {{ $User.UserName }}  (CheckTimes: {{ $User.CheckTimes }} )</th>
+                <th>DomainName</th>
+                <th>Days</th>
+                <th>ID</th>
+                <th>RenewState</th> 
+                <th>CheckTimes</th>
             </tr>
         </thead>
         <tbody>
-            <tr>
-                <td>DomainName</td>
-                <td>Days</td>
-                <td>ID</td>
-                <td>RenewState</td>      
-            </tr>
             {{range $Domain := $User.Domains}}
             <tr>
                 <td>{{ $Domain.DomainName }}</td>
                 <td>{{ $Domain.Days}}</td>
                 <td>{{ $Domain.ID }}</td>
                 <td>{{ $Domain.RenewState }}</td>
+                <td>{{ $Domain.CheckTimes }}</td>
             </tr>
             {{end}}
         </tbody>
     </table>
+    <br>
     {{end}}
 </body>
 </html>

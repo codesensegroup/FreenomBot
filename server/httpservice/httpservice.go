@@ -9,7 +9,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/codesensegroup/FreenomBot/internal/checkprofile"
+	getConfig "github.com/codesensegroup/FreenomBot/internal/config"
 	"github.com/codesensegroup/FreenomBot/internal/freenom"
 )
 
@@ -35,7 +35,7 @@ type Domain struct {
 
 var validPath = regexp.MustCompile("^/$")
 
-func makeHandler(fn func(http.ResponseWriter, *http.Request), config *checkprofile.Config) http.HandlerFunc {
+func makeHandler(fn func(http.ResponseWriter, *http.Request), config *getConfig.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		m := validPath.FindStringSubmatch(r.URL.Path)
 		if m == nil {
@@ -61,37 +61,21 @@ func makeHandler(fn func(http.ResponseWriter, *http.Request), config *checkprofi
 }
 
 func renderTemplate(w http.ResponseWriter, tmpl string, data *freenom.Freenom) {
-	var pdata = getPageData(&PageData{}, data)
+	//var pdata = getPageData(&PageData{}, data)
 
 	t, err := template.ParseFiles("./resources/html/" + tmpl + ".html")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	err = t.Execute(w, pdata)
+	err = t.Execute(w, data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
-func getPageData(pdata *PageData, data *freenom.Freenom) *PageData {
-	pdata.Users = make([]User, len(data.Users))
-	for i, user := range data.Users {
-		pdata.Users[i].UserName = user.UserName
-		pdata.Users[i].CheckTimes = user.CheckTimes
-		pdata.Users[i].Domains = make([]Domain, len(user.Domains))
-		for ii, domain := range user.Domains {
-			pdata.Users[i].Domains[ii].DomainName = domain.DomainName
-			pdata.Users[i].Domains[ii].Days = domain.Days
-			pdata.Users[i].Domains[ii].ID = domain.ID
-			pdata.Users[i].Domains[ii].RenewState = domain.RenewState
-		}
-	}
-	return pdata
-}
-
 // Run server
-func Run(data *freenom.Freenom, config *checkprofile.Config) {
+func Run(data *freenom.Freenom, config *getConfig.Config) {
 	http.HandleFunc("/", makeHandler(func(w http.ResponseWriter, r *http.Request) {
 		renderTemplate(w, "status", data)
 	}, config))

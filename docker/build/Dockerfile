@@ -1,7 +1,7 @@
 
 FROM golang:alpine AS build-env
 ADD . /src
-RUN cd /src && go mod vender;
+RUN cd /src && go mod vendor;
 RUN go build -o app
 
 FROM alpine:latest

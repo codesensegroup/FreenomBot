@@ -1,12 +1,12 @@
 
 FROM golang:alpine AS build-env
 ADD . /src
-RUN cd /src && go mod vendor;
+RUN cd /src && ls -al;
+RUN go mod download;
 RUN go build -o app
 
 FROM alpine:latest
-ADD config.toml      /root/app/
-COPY resources        /root/app/resources/
+ADD config.toml /root/app/
 COPY --from=build-env /src/app /root/app/
 ADD run /root/
 

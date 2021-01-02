@@ -11,13 +11,15 @@ import (
 	"github.com/codesensegroup/FreenomBot/server/httpservice"
 )
 
-func task(f *freenom.Freenom, acs int) {
+func task(f *freenom.Freenom, acs int, configData *config.Config) {
 	var i int
 	for i = 0; i < acs; i++ {
 		f.Login(i).RenewDomains(i)
 		for _, d := range f.ConfigData.Accounts[i].Domains {
 			log.Println("log: ", d)
-			line.Send(fmt.Sprintf("%#v", d))
+			if configData.Line.Enable {
+				line.Send(fmt.Sprintf("%#v", d))
+			}
 		}
 	}
 }
@@ -30,9 +32,9 @@ func main() {
 		line.Init(&configData.Line.Token)
 	}
 	f := freenom.GetInstance()
-	task(f, len(configData.Accounts))
+	task(f, len(configData.Accounts), configData)
 	go scheduler.Run(func() {
-		task(f, len(configData.Accounts))
+		task(f, len(configData.Accounts), configData)
 	}, configData.System.CronTiming)
 
 	httpservice.Run(f, configData)

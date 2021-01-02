@@ -5,6 +5,6 @@ services:
         image: ghcr.io/codesensegroup/freenombot:latest
         restart: unless-stopped
         volumes:
-              - "${PWD}/config.toml:/root/FreenomBot/config.toml"
+              - "${PWD}/config.toml:/root/app/config.toml"
         ports:
               - "8080:8080"

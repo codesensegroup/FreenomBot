@@ -11,10 +11,11 @@ Account = "admin"
 Password = "admin"
 CronTiming = "23:30"
 
+// type your freenom account and password.
 [[Accounts]]
 Username = "xxx@xxx.com"
 Password = "xxx"
-
+// ...
 [[Accounts]]
 Username = "ooo@ooo.com"
 Password = "ooo"

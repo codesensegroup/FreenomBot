@@ -11,6 +11,11 @@ Account = "admin"
 Password = "admin"
 CronTiming = "23:30"
 
+[Line]
+Enable = true
+Daily = true
+Token = "xxxx"
+
 // type your freenom account and password.
 [[Accounts]]
 Username = "xxx@xxx.com"

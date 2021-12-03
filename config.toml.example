@@ -11,9 +11,10 @@ Token = "xxxx"
 
 #[Mailer]
 #Enable = false
-#Account = "hsieh.develop01@gmail.com"
-#Password = "xhwslhzhuxxguglg"
-#To = "frank30941@gmail.com"
+#Daily = true
+#Account = "xxx@gmail.com"
+#Password = "xxx"
+#To = "xxxx@gmail.com"
 
 [[Accounts]]
 Username = "xxx@gmail.com"

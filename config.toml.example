@@ -1,0 +1,24 @@
+[System]
+Account = "xxx"
+Password = "xxx"
+CronTiming = "23:30"
+Lang = "zh"
+
+[Line]
+Enable = true
+Daily = true
+Token = "xxxx"
+
+#[Mailer]
+#Enable = false
+#Account = "hsieh.develop01@gmail.com"
+#Password = "xhwslhzhuxxguglg"
+#To = "frank30941@gmail.com"
+
+[[Accounts]]
+Username = "xxx@gmail.com"
+Password = "xxxx"
+
+[[Accounts]]
+Username = "zzz@gmail.com"
+Password = "zzzz"

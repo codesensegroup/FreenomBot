@@ -3,35 +3,8 @@ package config
 import (
 	"log"
 	"path/filepath"
-	"regexp"
-	"sync"
 
 	"github.com/BurntSushi/toml"
-)
-
-const (
-	Version                 = "v0.0.5"
-	Timeout                 = 34
-	DelayRegistionDelayTime = 14
-	BaseURL                 = "https://my.freenom.com"
-	RefererURL              = "https://my.freenom.com/clientarea.php"
-	LoginURL                = "https://my.freenom.com/dologin.php"
-	DomainStatusURL         = "https://my.freenom.com/domains.php?a=renewals"
-	RenewDomainURL          = "https://my.freenom.com/domains.php?submitrenewals=true"
-	AuthKey                 = "WHMCSZH5eHTGhfvzP"
-)
-
-var (
-	TokenREGEX       = regexp.MustCompile(`name="token"\svalue="(?P<token>[^"]+)"`)
-	DomainInfoREGEX  = regexp.MustCompile(`<tr><td>(?P<domain>[^<]+)<\/td><td>[^<]+<\/td><td>[^<]+<span class="[^"]+">(?P<days>\d+)[^&]+&domain=(?P<id>\d+)"`)
-	LoginStatusREGEX = regexp.MustCompile(`<li.*?Logout.*?<\/li>`)
-	CheckRenew       = regexp.MustCompile(`(?i)Order Confirmation`)
-)
-
-const (
-	RenewNo  int = 0
-	RenewYes int = 1
-	RenewErr int = 3
 )
 
 /** Tom file **/
@@ -48,13 +21,13 @@ type System struct {
 	Account    string
 	Password   string
 	CronTiming string
-	Daily      bool
 	Lang       string
 }
 
 // Mailer for send email at tom file
 type Mailer struct {
 	Enable   bool
+	Daily    bool
 	Account  string
 	Password string
 	To       string
@@ -63,6 +36,7 @@ type Mailer struct {
 // Line for send message at tom file
 type Line struct {
 	Enable bool
+	Daily  bool
 	Token  string
 }
 
@@ -83,7 +57,6 @@ type Domain struct {
 }
 
 var configData *Config
-var once sync.Once
 
 func readConf(filename string) error {
 	var (
@@ -114,7 +87,7 @@ func GetData() *Config {
 }
 
 func init() {
-	once.Do(func() {
-		readConf("./config.toml")
-	})
+	if err := readConf("./config.toml"); err != nil {
+		log.Fatalln(err)
+	}
 }

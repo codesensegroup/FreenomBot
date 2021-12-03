@@ -1,6 +1,7 @@
 package freenom
 
 import (
+	"errors"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -12,27 +13,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/codesensegroup/FreenomBot/internal/config"
+	"FreenomBot/config"
+
 	"github.com/tidwall/gjson"
 	"golang.org/x/net/publicsuffix"
 )
-
-//Domain struct
-type Domain struct {
-	DomainName string
-	Days       int
-	ID         string
-	CheckTimes int
-	RenewState int
-}
-
-//User data
-type User struct {
-	UserName   string
-	PassWord   string
-	CheckTimes int
-	Domains    map[int]*Domain
-}
 
 // Freenom for opterate FreenomAPI
 type Freenom struct {
@@ -49,92 +34,103 @@ func GetInstance() *Freenom {
 	once.Do(func() {
 		instance = &Freenom{}
 		instance.cookiejar, _ = cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
-		instance.client = &http.Client{Timeout: config.Timeout * time.Second, Jar: instance.cookiejar}
+		instance.client = &http.Client{Timeout: timeout * time.Second, Jar: instance.cookiejar}
 		instance.ConfigData = config.GetData()
 	})
 	return instance
 }
 
 // Login on Freenom
-func (f *Freenom) Login(uid int) *Freenom {
-	_ = sendRequest(
+func (f *Freenom) Login(user *User) error {
+	_, err := f.sendRequest(
 		"POST",
-		config.LoginURL,
+		loginURL,
 		`{"headers":{
 			"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
 			"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36",
 			"Content-Type": "application/x-www-form-urlencoded",
-			"Referer": "`+config.RefererURL+`",
+			"Referer": "`+refererURL+`",
 		},}`,
 		url.Values{
-			"username": {f.ConfigData.Accounts[uid].Username},
-			"password": {f.ConfigData.Accounts[uid].Password},
+			"username": {user.UserName},
+			"password": {user.Password},
 		}.Encode(),
 	)
+	if err != nil {
+		return err
+	}
 
-	u, _ := url.Parse(config.BaseURL)
+	u, _ := url.Parse(baseURL)
 	for _, authcook := range f.cookiejar.Cookies(u) {
-		if config.AuthKey == authcook.Name && authcook.Value == "" {
-			log.Println("AUTH error")
+		if authKey == authcook.Name && authcook.Value == "" {
+			return errors.New("AUTH error")
 		}
 		log.Println("log: cookie_id: ", authcook.Value)
 	}
-	return f
+
+	return nil
 }
 
-//RenewDomains is renew domain name
-func (f *Freenom) RenewDomains(uid int) *Freenom {
-	body := sendRequest(
+func (f *Freenom) GetFreenomInfo(user *User) error {
+	body, err := f.sendRequest(
 		"GET",
-		config.DomainStatusURL,
+		domainStatusURL,
 		`{"headers":{
-			"Referer": "`+config.RefererURL+`"
+			"Referer": "`+refererURL+`"
 		},}`,
 		"",
 	)
-
-	if !config.LoginStatusREGEX.Match(body) {
-		log.Fatal("login state error no login")
+	if err != nil {
+		return err
 	}
 
-	//f.Users[uid].CheckTimes++
+	if !loginStatusREGEX.Match(body) {
+		return errors.New("login state error no login")
+	}
 
-	token := getParams(config.TokenREGEX, string(body))[0]["token"]
+	user.Token = getParams(tokenREGEX, body)[0]["token"]
+	domains := getParams(domainInfoREGEX, body)
+	user.Domains = make([]Domain, len(domains))
 
-	domains := getParams(config.DomainInfoREGEX, string(body))
-
-	config.CreateDomains(uid, len(domains))
 	for i, d := range domains {
-		tmp, _ := d["days"]
-		f.ConfigData.Accounts[uid].Domains[i].Days, _ = strconv.Atoi(tmp)
-		f.ConfigData.Accounts[uid].Domains[i].ID, _ = d["id"]
-		f.ConfigData.Accounts[uid].Domains[i].DomainName, _ = d["domain"]
-		if f.ConfigData.Accounts[uid].Domains[i].Days <= config.DelayRegistionDelayTime {
-			body := sendRequest(
+		tmp := d["days"]
+		user.Domains[i].Days, _ = strconv.Atoi(tmp)
+		user.Domains[i].ID = d["id"]
+		user.Domains[i].DomainName = d["domain"]
+	}
+
+	return nil
+}
+
+//RenewDomains is renew domain name
+func (f *Freenom) RenewDomains(user *User) error {
+	for i := range user.Domains {
+		if user.Domains[i].Days <= delayRegistionDelayTime {
+			body, _ := f.sendRequest(
 				"POST",
-				config.RenewDomainURL,
+				renewDomainURL,
 				`{"headers":{
-					"Referer": "https://my.freenom.com/domains.php?a=renewdomain&domain=`+f.ConfigData.Accounts[uid].Domains[i].ID+`",
+					"Referer": "https://my.freenom.com/domains.php?a=renewdomain&domain=`+user.Domains[i].ID+`",
 					"Content-Type": "application/x-www-form-urlencoded",
 				},}`,
 				url.Values{
-					"token":     {token},
-					"renewalid": {f.ConfigData.Accounts[uid].Domains[i].ID},
-					"renewalperiod[" + f.ConfigData.Accounts[uid].Domains[i].ID + "]": {"12M"},
+					"token":     {user.Token},
+					"renewalid": {user.Domains[i].ID},
+					"renewalperiod[" + user.Domains[i].ID + "]": {"12M"},
 					"paymentmethod": {"credit"},
 				}.Encode(),
 			)
-			if config.CheckRenew.Match(body) {
-				f.ConfigData.Accounts[uid].Domains[i].RenewState = config.RenewYes
+			if checkRenew.Match(body) {
+				user.Domains[i].RenewState = RenewYes
 			} else {
 				log.Fatalln("renew error")
-				f.ConfigData.Accounts[uid].Domains[i].RenewState = config.RenewErr
+				user.Domains[i].RenewState = RenewErr
 			}
 		} else {
-			f.ConfigData.Accounts[uid].Domains[i].RenewState = config.RenewNo
+			user.Domains[i].RenewState = RenewNo
 		}
 	}
-	return f
+	return nil
 }
 
 /**
@@ -142,8 +138,9 @@ func (f *Freenom) RenewDomains(uid int) *Freenom {
  * group values defined in the expression.
  *
  */
-func getParams(regEx *regexp.Regexp, url string) (paramsMaps map[int]map[string]string) {
-	match := regEx.FindAllStringSubmatch(url, -1)
+func getParams(regEx *regexp.Regexp, body []byte) (paramsMaps map[int]map[string]string) {
+	// log.Println(string(body))
+	match := regEx.FindAllStringSubmatch(string(body), -1)
 	paramsMaps = map[int]map[string]string{}
 
 	for j := 0; j < len(match); j++ {
@@ -160,13 +157,15 @@ func getParams(regEx *regexp.Regexp, url string) (paramsMaps map[int]map[string]
 /**
  * sendRequest just all in one
  */
-func sendRequest(method, furl, headers, datas string) []byte {
+func (f *Freenom) sendRequest(method, furl, headers, datas string) ([]byte, error) {
 RETRY:
 	req, err := http.NewRequest(method, furl, strings.NewReader(datas))
 	if err != nil {
 		log.Fatal("Create http request error", err)
+		time.Sleep(3 * time.Second)
+		goto RETRY
 	}
-	f := GetInstance()
+
 	if headers != "" {
 		headerObj := gjson.Get(headers, "headers")
 		headerObj.ForEach(func(key, value gjson.Result) bool {
@@ -174,12 +173,14 @@ RETRY:
 			return true
 		})
 	}
+
 	resp, err := f.client.Do(req)
 	if err != nil {
 		log.Println("http response error: ", err)
 		time.Sleep(3 * time.Second)
 		goto RETRY
 	}
+
 	body, _ := ioutil.ReadAll(resp.Body)
-	return body
+	return body, nil
 }

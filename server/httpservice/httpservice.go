@@ -9,29 +9,9 @@ import (
 	"strings"
 	"text/template"
 
-	getConfig "github.com/codesensegroup/FreenomBot/internal/config"
-	"github.com/codesensegroup/FreenomBot/internal/freenom"
+	"FreenomBot/common/freenom"
+	getConfig "FreenomBot/config"
 )
-
-// PageData is translate freenom map data
-type PageData struct {
-	Users []User
-}
-
-// User is translate freenom map data
-type User struct {
-	UserName   string
-	CheckTimes int
-	Domains    []Domain
-}
-
-// Domain is translate freenom map data
-type Domain struct {
-	DomainName string
-	Days       int
-	ID         string
-	RenewState int
-}
 
 var validPath = regexp.MustCompile("^/$")
 
@@ -60,7 +40,7 @@ func makeHandler(fn func(http.ResponseWriter, *http.Request), config *getConfig.
 	}
 }
 
-func renderTemplate(w http.ResponseWriter, tmpl string, data *freenom.Freenom) {
+func renderTemplate(w http.ResponseWriter, tmpl string, data *freenom.PageData) {
 	//var pdata = getPageData(&PageData{}, data)
 
 	t, err := template.ParseFiles("./resources/html/" + tmpl + ".html")
@@ -75,7 +55,7 @@ func renderTemplate(w http.ResponseWriter, tmpl string, data *freenom.Freenom) {
 }
 
 // Run server
-func Run(data *freenom.Freenom, config *getConfig.Config) {
+func Run(data *freenom.PageData, config *getConfig.Config) {
 	http.HandleFunc("/", makeHandler(func(w http.ResponseWriter, r *http.Request) {
 		renderTemplate(w, "status", data)
 	}, config))

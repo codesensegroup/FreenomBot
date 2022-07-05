@@ -1,4 +1,3 @@
 .vscode/*
 config.toml
 vendor/*
-go.sum
